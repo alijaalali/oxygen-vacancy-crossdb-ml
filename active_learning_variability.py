@@ -2,7 +2,8 @@
 comparison, computing the across-seed standard deviation (not just the
 mean) of how many labeled points each strategy needs to reach the target
 MAE threshold. Reuses the exact same pool/holdout split, strategy
-functions, and hyperparameters as phase4_v1_revisions.py's item 9.
+functions, and hyperparameters as the multiseed active-learning check in
+extended_robustness_analyses.py.
 """
 import json
 import time

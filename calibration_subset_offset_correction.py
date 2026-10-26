@@ -56,7 +56,7 @@ for rep in range(N_CAL_REPEATS):
     cal_maes.append(mean_absolute_error(eval_true, corrected_pred))
     cal_offsets.append(offset_est)
 
-item5 = {
+calibration_subset_offset = {
     "diagnostic_test_label_informed": {
         "note": "The ORIGINAL offset correction already reported elsewhere in "
                 "this paper (Table 2): the offset is estimated from the mean "
@@ -81,8 +81,8 @@ print(f"Realistic held-out calibration (50 repeats): R2={np.mean(cal_r2s):.3f}+-
       f"[{np.percentile(cal_r2s,5):.3f}, {np.percentile(cal_r2s,95):.3f}], "
       f"MAE={np.mean(cal_maes):.3f}+-{np.std(cal_maes):.3f}")
 
-results = json.load(open(f"{ROOT}/data/phase4_v1_revisions.json"))
-results["item5_calibration_subset_offset"] = item5
-with open(f"{ROOT}/data/phase4_v1_revisions.json", "w") as f:
+results = json.load(open(f"{ROOT}/data/extended_robustness_results.json"))
+results["calibration_subset_offset"] = calibration_subset_offset
+with open(f"{ROOT}/data/extended_robustness_results.json", "w") as f:
     json.dump(results, f, indent=2, default=str)
-print("Fixed and saved data/phase4_v1_revisions.json")
+print("Fixed and saved data/extended_robustness_results.json")

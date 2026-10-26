@@ -5,7 +5,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 ROOT = "/glade/work/ajalali/15 - OxygenVacancy-CrossDB-ML-project"
-d = json.load(open(f"{ROOT}/data/phase4_v1_revisions.json"))["item2_3_finetuning_and_source2only"]
+d = json.load(open(f"{ROOT}/data/extended_robustness_results.json"))["finetuning_and_source2only_comparison"]
 
 er = d["entry_random"]
 cg = d["composition_grouped"]

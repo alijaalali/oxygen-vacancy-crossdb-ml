@@ -64,10 +64,10 @@ print(f"Featurized Source2={len(X2)} Source3={len(X3)}")
 GBM_KW = dict(n_estimators=300, max_depth=2, learning_rate=0.02, subsample=0.8, random_state=RNG)
 
 # =========================================================================
-# ITEM 2: stability-threshold sensitivity sweep
+# Stability-threshold sensitivity sweep
 # =========================================================================
 print("\n" + "=" * 70)
-print("ITEM 2: stability-threshold sensitivity sweep")
+print("Stability-threshold sensitivity sweep")
 print("=" * 70)
 
 thresholds = [0.05, 0.1, 0.2]
@@ -97,10 +97,10 @@ for thresh in thresholds:
           f"Source2 corrected R2={r2_2_corr:.3f} MAE={mae_2_corr:.3f}")
 
 # =========================================================================
-# ITEM 4: composition-overlap/leakage check, Source1 (0.1 filter) vs Source2
+# Composition-overlap/leakage check, Source1 (0.1 filter) vs Source2
 # =========================================================================
 print("\n" + "=" * 70)
-print("ITEM 4: composition-overlap / leakage check, Source1 vs Source2")
+print("Composition-overlap / leakage check, Source1 vs Source2")
 print("=" * 70)
 
 keep01 = meta1_full["stability"] <= 0.1
@@ -157,11 +157,12 @@ print(f"Source2 all rows (n={len(y2)}): R2={r2_2_all:.3f} MAE={mae_2_all:.3f}")
 print(f"Source2 excluding overlap rows (n={len(y2_noleak)}): R2={r2_2_noleak:.3f} MAE={mae_2_noleak:.3f}")
 
 # =========================================================================
-# ITEM 3 & 5a: use the real per-row redox diagnosis predictions already on disk
+# Size-matched subgroup control and grouped bootstrap CIs, using the real
+# per-row redox diagnosis predictions already on disk
 # =========================================================================
 print("\n" + "=" * 70)
-print("ITEM 3: size-matched control, redox-active vs fixed-valence")
-print("ITEM 5a: grouped bootstrap CIs on headline R2 numbers")
+print("Size-matched control, redox-active vs fixed-valence")
+print("Grouped bootstrap CIs on headline R2 numbers")
 print("=" * 70)
 
 redox_df = pd.read_csv(f"{ROOT}/data/redox_diagnosis_source2.csv")
@@ -178,7 +179,7 @@ print(f"Sanity check against headline numbers: overall R2={r2_overall_check:.3f}
       f"(expect -1.898), redox R2={r2_redox_check:.3f} (expect -1.309), "
       f"fixed R2={r2_fixed_check:.3f} (expect -19.868)")
 
-# --- Item 3: size-matched control ---
+# --- Size-matched control ---
 n_fixed = len(fixed_sub)
 rng = np.random.RandomState(RNG)
 N_SUB = 1000
@@ -201,7 +202,7 @@ print(f"  R2 distribution: median={sub_median:.3f}, 5-95pct=[{sub_p5:.3f}, {sub_
 print(f"  Actual fixed-valence R2 = {r2_fixed_check:.3f}")
 print(f"  Fraction of size-matched redox-active draws with R2 <= actual fixed-valence R2: {frac_below_fixed:.4f}")
 
-# --- Item 5a: grouped bootstrap CIs (resample whole compositions together) ---
+# --- Grouped bootstrap CIs (resample whole compositions together) ---
 def grouped_bootstrap_r2(df, n_boot=2000, seed=RNG):
     groups = df["composition"].unique()
     rng = np.random.RandomState(seed)
@@ -233,8 +234,8 @@ print(f"  Fixed-valence R2 = {r2_fixed_check:.3f} [{ci_fixed[0]:.3f}, {ci_fixed[
 # Save all results
 # =========================================================================
 out = {
-    "item2_threshold_sweep": sweep_results,
-    "item4_composition_overlap": {
+    "threshold_sweep": sweep_results,
+    "composition_overlap_check": {
         "source1_n_distinct_reduced_formulas": len(s1_reduced),
         "source2_n_distinct_reduced_formulas": len(s2_reduced),
         "overlap_formulas": overlap_formulas,
@@ -244,14 +245,14 @@ out = {
         "source2_noleak_n": int(mask_noleak.sum()),
         "source2_noleak_r2": float(r2_2_noleak), "source2_noleak_mae": float(mae_2_noleak),
     },
-    "item3_size_matched_control": {
+    "size_matched_control": {
         "n_fixed": int(n_fixed), "n_redox_full": int(len(redox_sub)), "n_draws": N_SUB,
         "subsample_r2_median": sub_median, "subsample_r2_p5": sub_p5, "subsample_r2_p95": sub_p95,
         "subsample_r2_min": sub_min, "subsample_r2_max": sub_max,
         "actual_fixed_r2": float(r2_fixed_check),
         "frac_subsample_draws_at_or_below_actual_fixed_r2": frac_below_fixed,
     },
-    "item5a_grouped_bootstrap_ci": {
+    "grouped_bootstrap_ci": {
         "overall_r2": float(r2_overall_check), "overall_ci95": ci_overall,
         "redox_r2": float(r2_redox_check), "redox_ci95": ci_redox,
         "fixed_r2": float(r2_fixed_check), "fixed_ci95": ci_fixed,

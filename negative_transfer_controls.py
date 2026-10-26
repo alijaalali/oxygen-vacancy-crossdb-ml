@@ -41,8 +41,8 @@ def composition_grouped_split(meta, test_frac_rows, seed):
     """Greedy composition-level split targeting ~test_frac_rows of TOTAL ROWS
     in the held-out partition, with every row of a given composition going
     to the same side. Identical to the split used for the main-text joint-
-    training/label-efficiency curve (phase4_v1_revisions.py), so this
-    script's test partition matches the main curve's exactly."""
+    training/label-efficiency curve (extended_robustness_analyses.py), so
+    this script's test partition matches the main curve's exactly."""
     comp_sizes = meta.groupby("composition").size()
     unique_comps = comp_sizes.index.to_numpy()
     rng = np.random.RandomState(seed)

@@ -16,8 +16,8 @@ GBM_KW = dict(n_estimators=300, max_depth=2, learning_rate=0.02, subsample=0.8)
 t_start = time.time()
 
 # ---------------------------------------------------------------
-# Load already-featurized data (same tables Phase 1/2/3 used -- do not
-# re-featurize, to guarantee numbers match exactly what's already verified).
+# Load already-featurized data (same tables the core pipeline used -- do
+# not re-featurize, to guarantee numbers match exactly what's already verified).
 # ---------------------------------------------------------------
 X1_full = pd.read_csv(f"{ROOT}/data/featurized_source1.csv")
 y1 = X1_full.pop("target")
@@ -50,7 +50,7 @@ print(f"Loaded: Source1={len(X1)}, Source2={len(X2)}  ({time.time()-t_start:.1f}
 results = {}
 
 # =================================================================
-# Major Comment 7 FIRST (cheap, and other blocks reuse the base model)
+# Rank correlation first (cheap, and other blocks reuse the base model)
 # =================================================================
 import joblib
 gbm_main = joblib.load(f"{ROOT}/models/gbm_source1_main.joblib")
@@ -65,7 +65,7 @@ kt_overall, kt_overall_p = kendalltau(y2.values, pred_main_s2)
 sp_redox, sp_redox_p = spearmanr(y2.values[redox_mask], pred_main_s2[redox_mask])
 sp_fixed, sp_fixed_p = spearmanr(y2.values[fixed_mask], pred_main_s2[fixed_mask])
 
-results["item7_rank_correlation"] = {
+results["rank_correlation"] = {
     "note": "Negative R^2 means SSE exceeds that of predicting the TEST-SET mean "
             "(not the training-set mean), and does not by itself establish poor "
             "ranking; these rank correlations are the correct, direct test of "
@@ -75,11 +75,11 @@ results["item7_rank_correlation"] = {
     "redox_spearman": float(sp_redox), "redox_spearman_p": float(sp_redox_p),
     "fixed_spearman": float(sp_fixed), "fixed_spearman_p": float(sp_fixed_p),
 }
-print(f"[Comment 7] overall Spearman={sp_overall:.3f} (p={sp_overall_p:.2e}), "
+print(f"Rank correlation: overall Spearman={sp_overall:.3f} (p={sp_overall_p:.2e}), "
       f"Kendall={kt_overall:.3f}; redox Spearman={sp_redox:.3f}, fixed Spearman={sp_fixed:.3f}")
 
 # =================================================================
-# Major Comment 1: structural-family-matched comparison
+# Structural-family-matched comparison
 # =================================================================
 def structural_family(formula):
     try:
@@ -163,7 +163,7 @@ lr = LinearRegression().fit(Xreg_std, yreg)
 reg_coefs = dict(zip(Xreg.columns, [float(c) for c in lr.coef_]))
 reg_r2 = float(lr.score(Xreg_std, yreg))
 
-results["item1_structural_family"] = {
+results["structural_family_comparison"] = {
     "family_definition": "binary_oxide: 1 distinct non-O cation element; "
                           "perovskite_like_ABO3: 2 distinct cations with O/cation-atom "
                           "ratio within 15% of 1.5 (the ABO3 stoichiometric ratio); "
@@ -185,16 +185,16 @@ results["item1_structural_family"] = {
         "n": int(valid_reg.sum()),
     },
 }
-print(f"[Comment 1] redox full: n={redox_full['n']} MAE={redox_full['mae']:.3f}  "
+print(f"Structural-family comparison, redox full: n={redox_full['n']} MAE={redox_full['mae']:.3f}  "
       f"fixed full: n={fixed_full['n']} MAE={fixed_full['mae']:.3f}")
-print(f"[Comment 1] excl. extreme binaries ({n_extreme_present} rows removed): "
+print(f"Structural-family comparison, excl. extreme binaries ({n_extreme_present} rows removed): "
       f"redox MAE={redox_noext['mae']:.3f}  fixed MAE={fixed_noext['mae']:.3f}")
-print(f"[Comment 1] regression coefs: {reg_coefs}  (R2={reg_r2:.3f}, n={valid_reg.sum()})")
+print(f"Matched-subset regression coefs: {reg_coefs}  (R2={reg_r2:.3f}, n={valid_reg.sum()})")
 
 # =================================================================
-# Major Comment 4: direct comparison for formulas present in both DBs
+# Direct comparison for formulas present in both databases
 # =================================================================
-overlap_formulas = json.load(open(f"{ROOT}/data/phase3_strengthening_results.json"))["item4_composition_overlap"]["overlap_formulas"]
+overlap_formulas = json.load(open(f"{ROOT}/data/phase3_strengthening_results.json"))["composition_overlap_check"]["overlap_formulas"]
 overlap_formulas_canon = sorted({canonical_formula(f) for f in overlap_formulas} - {None})
 df1_raw["canonical_formula"] = df1_raw["Chemical formula"].apply(canonical_formula)
 s1_by_formula = df1_raw.groupby("canonical_formula")["target"].mean()
@@ -211,18 +211,18 @@ for f in overlap_formulas_canon:
         "difference_s2minus_s1_eV": float(np.mean(s2_vals) - s1_val),
     })
 diffs = [d["difference_s2minus_s1_eV"] for d in direct_compare]
-results["item4_direct_formula_comparison"] = {
+results["direct_formula_comparison"] = {
     "n_formulas_compared": len(direct_compare),
     "rows": direct_compare,
     "mean_difference_eV": float(np.mean(diffs)) if diffs else None,
     "median_difference_eV": float(np.median(diffs)) if diffs else None,
     "std_difference_eV": float(np.std(diffs, ddof=1)) if len(diffs) > 1 else None,
 }
-print(f"[Comment 4] {len(direct_compare)} formulas directly compared; "
-      f"mean S2-S1 diff = {np.mean(diffs):.3f} eV" if diffs else "[Comment 4] no overlap formulas found")
+print(f"Direct formula comparison: {len(direct_compare)} formulas compared; "
+      f"mean S2-S1 diff = {np.mean(diffs):.3f} eV" if diffs else "Direct formula comparison: no overlap formulas found")
 
 # =================================================================
-# Major Comment 6: intra-compound site variation vs composition-mean baseline
+# Intra-compound site variation vs composition-mean baseline
 # =================================================================
 site_groups = df2_raw.groupby("formula")["dH_eV"]
 multi_site = site_groups.filter(lambda s: len(s) >= 2)
@@ -245,7 +245,7 @@ loo_true = np.array(loo_true)
 loo_mae = mean_absolute_error(loo_true, loo_preds)
 n_single_site = int((df2_raw.groupby("formula").size() == 1).sum())
 
-results["item6_site_variation"] = {
+results["site_variation"] = {
     "n_compounds_total": int(df2_raw["formula"].nunique()),
     "n_compounds_single_site_excluded": n_single_site,
     "n_compounds_multi_site": int(intra_std.shape[0]),
@@ -262,11 +262,11 @@ results["item6_site_variation"] = {
                        "cross-database transfer failure, not the composition-only "
                        "representation's inability to resolve inequivalent sites.",
 }
-print(f"[Comment 6] intra-compound std: mean={intra_std.mean():.3f} eV, median={intra_std.median():.3f} eV; "
+print(f"Intra-compound std: mean={intra_std.mean():.3f} eV, median={intra_std.median():.3f} eV; "
       f"composition-mean LOO baseline MAE={loo_mae:.3f} eV vs transfer MAE=2.045 eV")
 
 # =================================================================
-# Major Comment 8: UQ vs distance baseline, redox/fixed breakdown
+# UQ vs distance baseline, redox/fixed breakdown
 # =================================================================
 sp_unc_err, sp_unc_err_p = spearmanr(uq2["pred_std"].values, uq2["true"].values - uq2["pred_mean"].values if False else np.abs(uq2["true"].values - uq2["pred_mean"].values))
 sp_dist_err, sp_dist_err_p = spearmanr(nn2["nn_distance"].values, nn2["abs_error"].values)
@@ -281,7 +281,7 @@ sp_unc_fixed, _ = spearmanr(uq_fixed["pred_std"], np.abs(uq_fixed["true"] - uq_f
 sp_dist_redox, _ = spearmanr(nn_redox["nn_distance"], nn_redox["abs_error"])
 sp_dist_fixed, _ = spearmanr(nn_fixed["nn_distance"], nn_fixed["abs_error"])
 
-results["item8_uq_vs_distance_baseline"] = {
+results["uq_vs_distance_baseline"] = {
     "spearman_uncertainty_vs_abs_error_overall": float(sp_unc_err),
     "spearman_distance_vs_abs_error_overall": float(sp_dist_err),
     "spearman_uncertainty_vs_abs_error_redox": float(sp_unc_redox),
@@ -294,20 +294,20 @@ results["item8_uq_vs_distance_baseline"] = {
                        "provides ranking information beyond a conventional "
                        "out-of-distribution indicator.",
 }
-print(f"[Comment 8] Spearman(uncertainty, |err|) overall={sp_unc_err:.3f} vs "
+print(f"UQ-vs-distance baseline: Spearman(uncertainty, |err|) overall={sp_unc_err:.3f} vs "
       f"Spearman(distance, |err|) overall={sp_dist_err:.3f}")
-print(f"[Comment 8] by subgroup -- uncertainty: redox={sp_unc_redox:.3f} fixed={sp_unc_fixed:.3f}; "
+print(f"UQ-vs-distance baseline by subgroup -- uncertainty: redox={sp_unc_redox:.3f} fixed={sp_unc_fixed:.3f}; "
       f"distance: redox={sp_dist_redox:.3f} fixed={sp_dist_fixed:.3f}")
 
 print(f"\n[Checkpoint] cheap analyses done at {time.time()-t_start:.1f}s. Saving partial results.")
-with open(f"{ROOT}/data/phase4_v1_revisions_partial.json", "w") as f:
+with open(f"{ROOT}/data/extended_robustness_results_partial.json", "w") as f:
     json.dump(results, f, indent=2, default=str)
 
 # =================================================================
-# Major Comments 2 & 3: composition-grouped fine-tuning curve AND
-# Source-2-only learning curve, under BOTH split protocols
-# (entry-random, matching the original Phase-2b experiment exactly, and
-# the new composition-grouped protocol), with k=60/70/80/90 added.
+# Composition-grouped fine-tuning curve AND Source-2-only learning
+# curve, under BOTH split protocols (entry-random, matching the
+# original fine-tuning experiment exactly, and the composition-grouped
+# protocol), with k=60/70/80/90 added.
 # =================================================================
 from sklearn.model_selection import train_test_split
 
@@ -394,14 +394,14 @@ def run_curves(X2_pool, y2_pool, X2_test, y2_test, k_values, n_seeds, label):
 
 
 # --- Protocol A: entry-random split (same definition as the original
-# Phase-2b experiment: fixed random_state=RNG 80/20 row split) ---
+# fine-tuning experiment: fixed random_state=RNG 80/20 row split) ---
 X2_pool_er, X2_test_er, y2_pool_er, y2_test_er, meta2_pool_er, meta2_test_er = train_test_split(
     X2, y2, meta2, test_size=0.2, random_state=RNG)
-print(f"\n[Comments 2&3] Entry-random split: pool={len(X2_pool_er)}, test={len(X2_test_er)}")
+print(f"\nEntry-random split: pool={len(X2_pool_er)}, test={len(X2_test_er)}")
 combined_er, s2only_er = run_curves(X2_pool_er, y2_pool_er, X2_test_er, y2_test_er,
                                      K_VALUES_BASE, N_SEEDS, "entry-random")
 
-# --- Protocol B: composition-grouped split (fixes the Major-Comment-2 leak) ---
+# --- Protocol B: composition-grouped split (fixes the composition-level leak) ---
 test_mask_cg = composition_grouped_split(meta2, 0.2, seed=RNG)
 X2_pool_cg, y2_pool_cg, meta2_pool_cg = X2[~test_mask_cg].reset_index(drop=True), y2[~test_mask_cg].reset_index(drop=True), meta2[~test_mask_cg].reset_index(drop=True)
 X2_test_cg, y2_test_cg, meta2_test_cg = X2[test_mask_cg].reset_index(drop=True), y2[test_mask_cg].reset_index(drop=True), meta2[test_mask_cg].reset_index(drop=True)
@@ -409,12 +409,12 @@ n_comps_pool = meta2_pool_cg["composition"].nunique()
 n_comps_test = meta2_test_cg["composition"].nunique()
 overlap_check = set(meta2_pool_cg["composition"]) & set(meta2_test_cg["composition"])
 assert len(overlap_check) == 0, "composition-grouped split leaked a composition across partitions!"
-print(f"[Comments 2&3] Composition-grouped split: pool={len(X2_pool_cg)} rows / {n_comps_pool} compositions, "
+print(f"Composition-grouped split: pool={len(X2_pool_cg)} rows / {n_comps_pool} compositions, "
       f"test={len(X2_test_cg)} rows / {n_comps_test} compositions (0 compositions shared, verified)")
 combined_cg, s2only_cg = run_curves(X2_pool_cg, y2_pool_cg, X2_test_cg, y2_test_cg,
                                      K_VALUES_BASE, N_SEEDS, "composition-grouped")
 
-results["item2_3_finetuning_and_source2only"] = {
+results["finetuning_and_source2only_comparison"] = {
     "entry_random": {
         "note": "Same split definition as the original fine-tuning "
                 "experiment -- measures performance on additional oxygen "
@@ -434,17 +434,17 @@ results["item2_3_finetuning_and_source2only"] = {
         "source2_only": s2only_cg,
     },
 }
-print(f"\n[Comments 2&3] at k=300: entry-random combined R2={combined_er['r2_mean'][combined_er['k_values'].index(300)]:.3f}, "
+print(f"\nAt k=300: entry-random combined R2={combined_er['r2_mean'][combined_er['k_values'].index(300)]:.3f}, "
       f"comp-grouped combined R2={combined_cg['r2_mean'][combined_cg['k_values'].index(300)]:.3f}")
 
-with open(f"{ROOT}/data/phase4_v1_revisions_partial.json", "w") as f:
+with open(f"{ROOT}/data/extended_robustness_results_partial.json", "w") as f:
     json.dump(results, f, indent=2, default=str)
-print(f"[Checkpoint] comments 2&3 done at {time.time()-t_start:.1f}s")
+print(f"[Checkpoint] fine-tuning/source2-only curves done at {time.time()-t_start:.1f}s")
 
 # =================================================================
-# Major Comment 5: offset correction from a HELD-OUT calibration subset
-# (not the evaluation set itself), repeated over many random
-# composition-grouped calibration/eval splits for a stable estimate.
+# Offset correction from a HELD-OUT calibration subset (not the
+# evaluation set itself), repeated over many random composition-grouped
+# calibration/eval splits for a stable estimate.
 # =================================================================
 pred_full_s2 = gbm_main.predict(X2)  # the canonical, already-loaded joblib model
 assert np.allclose(pred_full_s2, pred2["pred"].values, atol=1e-6)
@@ -467,7 +467,7 @@ for rep in range(N_CAL_REPEATS):
     cal_maes.append(mean_absolute_error(eval_true, corrected_pred))
     cal_offsets.append(offset_est)
 
-results["item5_calibration_subset_offset"] = {
+results["calibration_subset_offset"] = {
     "diagnostic_test_label_informed": {
         "note": "The ORIGINAL offset correction already reported elsewhere in "
                 "this paper: the offset is estimated from the mean residual of "
@@ -488,18 +488,18 @@ results["item5_calibration_subset_offset"] = {
         "offset_mean_eV": float(np.mean(cal_offsets)), "offset_std_eV": float(np.std(cal_offsets)),
     },
 }
-print(f"\n[Comment 5] diagnostic (test-label-informed): R2={orig_r2:.3f} MAE={orig_mae:.3f} offset={orig_offset:.3f}")
-print(f"[Comment 5] realistic held-out calibration (50 repeats): "
+print(f"\nDiagnostic offset correction (test-label-informed): R2={orig_r2:.3f} MAE={orig_mae:.3f} offset={orig_offset:.3f}")
+print(f"Realistic held-out calibration (50 repeats): "
       f"R2={np.mean(cal_r2s):.3f}+-{np.std(cal_r2s):.3f} "
       f"[{np.percentile(cal_r2s,5):.3f}, {np.percentile(cal_r2s,95):.3f}], "
       f"MAE={np.mean(cal_maes):.3f}+-{np.std(cal_maes):.3f}")
 
-with open(f"{ROOT}/data/phase4_v1_revisions_partial.json", "w") as f:
+with open(f"{ROOT}/data/extended_robustness_results_partial.json", "w") as f:
     json.dump(results, f, indent=2, default=str)
-print(f"[Checkpoint] comment 5 done at {time.time()-t_start:.1f}s")
+print(f"[Checkpoint] calibration-subset offset done at {time.time()-t_start:.1f}s")
 
 # =================================================================
-# Major Comment 9: active learning repeated with 15 seeds
+# Active learning repeated with 15 seeds
 # =================================================================
 from sklearn.model_selection import train_test_split as tts
 
@@ -566,7 +566,7 @@ n_checkpoints = al_rand_arr.shape[1]
 per_checkpoint_better_unc = int(np.sum([np.mean(al_unc_arr[:, i] < al_rand_arr[:, i]) > 0.5 for i in range(n_checkpoints)]))
 mean_diff_unc_minus_rand = (al_unc_arr - al_rand_arr).mean(axis=0)
 
-results["item9_multiseed_active_learning"] = {
+results["multiseed_active_learning"] = {
     "n_seeds": N_AL_SEEDS,
     "n_points_checkpoints": n_points_ref,
     "random_mae_mean": [float(x) for x in al_rand_arr.mean(axis=0)],
@@ -582,17 +582,17 @@ results["item9_multiseed_active_learning"] = {
     "n_seeds_random_reached_target": int(sum(k is not None for k in k_cross_rand)),
     "n_seeds_uncertainty_reached_target": int(sum(k is not None for k in k_cross_unc)),
 }
-print(f"\n[Comment 9] {N_AL_SEEDS}-seed active learning: "
-      f"{results['item9_multiseed_active_learning']['n_checkpoints_uncertainty_worse_on_average']} "
+print(f"\n{N_AL_SEEDS}-seed active learning: "
+      f"{results['multiseed_active_learning']['n_checkpoints_uncertainty_worse_on_average']} "
       f"of {n_checkpoints} checkpoints show uncertainty-based selection worse on average than random")
-print(f"[Comment 9] mean k to reach target MAE: random={results['item9_multiseed_active_learning']['k_for_target_mae_random_mean']:.1f}, "
-      f"uncertainty={results['item9_multiseed_active_learning']['k_for_target_mae_uncertainty_mean']:.1f}")
+print(f"Mean k to reach target MAE: random={results['multiseed_active_learning']['k_for_target_mae_random_mean']:.1f}, "
+      f"uncertainty={results['multiseed_active_learning']['k_for_target_mae_uncertainty_mean']:.1f}")
 
-with open(f"{ROOT}/data/phase4_v1_revisions_partial.json", "w") as f:
+with open(f"{ROOT}/data/extended_robustness_results_partial.json", "w") as f:
     json.dump(results, f, indent=2, default=str)
-print(f"[Checkpoint] ALL comments done at {time.time()-t_start:.1f}s")
+print(f"[Checkpoint] all analyses done at {time.time()-t_start:.1f}s")
 
 import shutil
-shutil.move(f"{ROOT}/data/phase4_v1_revisions_partial.json", f"{ROOT}/data/phase4_v1_revisions.json")
-print("Saved data/phase4_v1_revisions.json")
+shutil.move(f"{ROOT}/data/extended_robustness_results_partial.json", f"{ROOT}/data/extended_robustness_results.json")
+print("Saved data/extended_robustness_results.json")
 print("DONE")
