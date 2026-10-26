@@ -85,4 +85,4 @@ results = json.load(open(f"{ROOT}/data/extended_robustness_results.json"))
 results["calibration_subset_offset"] = calibration_subset_offset
 with open(f"{ROOT}/data/extended_robustness_results.json", "w") as f:
     json.dump(results, f, indent=2, default=str)
-print("Fixed and saved data/extended_robustness_results.json")
+print("Saved data/extended_robustness_results.json")
