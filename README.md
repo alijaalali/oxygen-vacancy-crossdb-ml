@@ -18,6 +18,8 @@ Scripts used to build features, train models, run the robustness/sensitivity ana
 12. `composition_averaged_check.py` — re-runs the zero-shot and joint-training comparison at the composition-averaged (not site-level) resolution
 13. `subgroup_statistics.py` — MAE/RMSE/target distribution and composition-grouped bootstrap CI for the redox-active vs. fixed-valence subgroup comparison
 14. `active_learning_variability.py` — across-seed variability of the active-learning labels-to-threshold comparison
+15. `ridge_baseline.py` — ridge-regression and mean-prediction baselines on the same in-distribution split, for comparison against the primary gradient-boosted-tree model
+16. `k_composition_counts.py` — mean number of unique compositions represented in the label-efficiency pool at each label budget k
 
 ## Figures
 
